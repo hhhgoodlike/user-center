@@ -1,7 +1,10 @@
 package com.hh.usercenter.service;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import com.hh.usercenter.model.User;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,20 +36,27 @@ class UserServiceTest {
 
     }
 
-//    @Test
-//    void userRegister() {
-//        String userAccount = "hh";
-//        String password = "";
-//        String checkPassword = "123456789";
-//        String plantCode = "123";
+    @Test
+    public void testSearchUserByTags(){
+        List<String> tagNameList = Arrays.asList("java","Python");
+        List<User> userList = userService.searchUserByTags(tagNameList);
+        Assert.assertNotNull(userList);
+    }
+
+    @Test
+    void userRegister() {
+        String userAccount = "hh";
+        String password = "";
+        String checkPassword = "123456789";
+        String plantCode = "123";
 //        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
-////        Assertions.assertEquals(-1,result);
-//        System.out.println("成功");
-//
-//        userAccount = "hhhhh";
-//        password = "123456789";
-//        result = userService.userRegister(userAccount,password,checkPassword,plantCode);
-//
-//
-//    }
+//        Assertions.assertEquals(-1,result);
+        System.out.println("成功");
+
+        userAccount = "hhhhh";
+        password = "123456789";
+        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
+
+
+    }
 }

@@ -2,6 +2,8 @@ package com.hh.usercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.hh.usercenter.common.ErrorCode;
 import com.hh.usercenter.exception.BusinessException;
 import com.hh.usercenter.service.UserService;
@@ -10,13 +12,19 @@ import com.hh.usercenter.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.hh.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -129,7 +137,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //2. 加密
         String encrypPassword = DigestUtils.md5DigestAsHex((SALT+password).getBytes(StandardCharsets.UTF_8));
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("UserAccount",userAccount);
+        queryWrapper.eq("userAccount",userAccount);
         queryWrapper.eq("password",encrypPassword);
         User user = userMapper.selectOne(queryWrapper);
         if(user == null){
@@ -166,6 +174,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserStatus(originUser.getUserStatus());
         safetyUser.setPlantCode(originUser.getPlantCode());
         safetyUser.setCreateTime(originUser.getCreateTime());
+        safetyUser.setTags(originUser.getTags());
         return safetyUser;
     }
 
@@ -178,6 +187,65 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //移除Session中的登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return 1;
+
+    }
+
+    /**
+     * 通过标签查询用户（内存过滤）
+     * @param tagNameList
+     * @return
+     */
+    @Override
+    public List<User> searchUserByTags(List<String> tagNameList) {
+
+        if(CollectionUtils.isEmpty(tagNameList)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //内存查询
+        //1.查询所有用户
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        List<User> usersList = userMapper.selectList(queryWrapper);
+        Gson gson = new Gson();
+        //2.在内存中判断是否有匹配的标签
+        return usersList.stream().filter(user -> {
+            String tagsStr = user.getTags();
+            if(StringUtils.isAnyBlank(tagsStr)){
+                return false;
+            }
+            Set<String> tempTagsName = gson.fromJson(tagsStr,new TypeToken<Set<String>>(){}.getType());
+            //判断tempTagsName是否为空:Optional.ofNullable(tempTagsName)判断是否为空，空的话，执行new HashSet<>()
+            tempTagsName = Optional.ofNullable(tempTagsName).orElse(new HashSet<>());
+            for (String tagsName : tagNameList){
+                if(!tempTagsName.contains(tagsName)){
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 通过标签查询用户（SQL查询版）
+     * @param tagNameList
+     * @return
+     */
+    @Deprecated
+    private List<User> searchUserByTagsBySql(List<String> tagNameList) {
+
+        if(CollectionUtils.isEmpty(tagNameList)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //sql语句查询
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        //拼接and查询
+        //like '%java%' and like '%Python%'
+        for (String tagName : tagNameList){
+            queryWrapper = queryWrapper.like("tags",tagName);
+        }
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
+
+
 
     }
 }
