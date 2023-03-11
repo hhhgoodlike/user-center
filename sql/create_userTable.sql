@@ -17,4 +17,14 @@ create table user
     plantCode   varchar(512)                       null comment '星球编号'
 )
     comment '用户';
-alter table user add COLUMN tags varchar(256) null comment '标签列表';
+alter table user add COLUMN tags varchar(1024) null comment '标签列表';
+alter table user add COLUMN userDescription varchar(1024) null comment '用户描述';
+
+
+show create table user;
+
+alter database hh character set utf8;
+
+alter table user character set utf8;
+
+alter table user modify tags varchar(1024) character set utf8;

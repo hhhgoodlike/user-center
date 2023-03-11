@@ -45,17 +45,17 @@ class UserServiceTest {
 
     @Test
     void userRegister() {
-        String userAccount = "hh";
-        String password = "";
+        String userAccount = "yupi";
+        String password = "123456789";
         String checkPassword = "123456789";
         String plantCode = "123";
-//        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
-//        Assertions.assertEquals(-1,result);
+        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
+        Assertions.assertEquals(-1,result);
         System.out.println("成功");
 
-        userAccount = "hhhhh";
-        password = "123456789";
-        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
+//        userAccount = "hhhhh";
+//        password = "123456789";
+//        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
 
 
     }

@@ -3,6 +3,7 @@ package com.hh.usercenter.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -10,7 +11,7 @@ import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
+import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
 
 /**
  * 自定义swagger接口文档的配置
@@ -19,10 +20,9 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
  */
 
 @Configuration
-// 指定扫描的 api 包路径
-@ComponentScan()
 //注解开启 swagger2 功能
-@EnableSwagger2
+@EnableSwagger2WebMvc
+@Profile({"dev","test"})
 public class SwaggerConfig {
 
 
@@ -31,8 +31,8 @@ public class SwaggerConfig {
     // 配置文件中通过值注入控制生产环境与开发环境下的启用状态
 
 
-    @Bean
-    public Docket createRestApi() {
+    @Bean(value = "defaultApi2")
+    public Docket defaultApi2() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
                 .select()

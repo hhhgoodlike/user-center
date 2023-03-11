@@ -2,9 +2,9 @@ spring:
 # DataSource Config
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://175.178.94.142:3306/user_center
-    username: "hh-usercenter"
-    password: "991206"
+    url: jdbc:mysql://localhost:3306/hh
+    username: "root"
+    password: "123456"
 
   session:
       timeout: 86400
