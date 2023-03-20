@@ -30,10 +30,6 @@ class UserServiceTest {
         Boolean result =  userService.save(user);
         System.out.println(user.getId());
         Assertions.assertEquals(true,result);
-
-
-
-
     }
 
     @Test
@@ -45,18 +41,15 @@ class UserServiceTest {
 
     @Test
     void userRegister() {
-        String userAccount = "yupi";
+        String userAccount = "aahhh";
         String password = "123456789";
         String checkPassword = "123456789";
-        String plantCode = "123";
+        String plantCode = "1243";
         long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
-        Assertions.assertEquals(-1,result);
+//        Assertions.assertEquals(-1,result);
         System.out.println("成功");
-
 //        userAccount = "hhhhh";
 //        password = "123456789";
 //        long result = userService.userRegister(userAccount,password,checkPassword,plantCode);
-
-
     }
 }

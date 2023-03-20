@@ -1,6 +1,8 @@
 package com.hh.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.hh.usercenter.common.BaseResponse;
@@ -11,7 +13,10 @@ import com.hh.usercenter.model.User;
 import com.hh.usercenter.model.request.UserLoginRequest;
 import com.hh.usercenter.model.request.UserRegisterRequest;
 import com.hh.usercenter.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 import springfox.documentation.spring.web.json.Json;
@@ -20,6 +25,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.hh.usercenter.constant.UserConstant.*;
@@ -33,10 +39,14 @@ import static com.hh.usercenter.constant.UserConstant.*;
 @RestController
 @CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
 @RequestMapping("/user")
+@Slf4j
 public class userController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     /**
      * 用户注册
@@ -128,7 +138,7 @@ public class userController {
     @GetMapping("/search")
     public BaseResponse<List<User>> SearchUser(String username, HttpServletRequest servletRequest){
 
-        if(!isAdmin(servletRequest)){
+        if(!userService.isAdmin(servletRequest)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"不是管理员");
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -143,6 +153,32 @@ public class userController {
         return ResultUtils.success(collect);
     }
 
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageSize,long pageNum, HttpServletRequest servletRequest){
+        User loginUser = userService.getLoginUser(servletRequest);
+        String redisKey = String.format("yupao:user:recommend:%s", loginUser.getId());
+        ValueOperations<String,Object> valueOperations = redisTemplate.opsForValue();
+        //有缓存，直接读取
+        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
+        if (userPage != null){
+            return ResultUtils.success(userPage);
+        }
+        //无缓存，从数据库中查询，并将数据缓存到redis中
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        userPage = userService.page(new Page<>(pageNum,pageSize),queryWrapper);
+        try {
+            valueOperations.set(redisKey,userPage,30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set key error",e);
+        }
+        return ResultUtils.success(userPage);
+    }
+
+    /**
+     * 通过标签查找用户
+     * @param tagNameList
+     * @return
+     */
     @GetMapping("/search/tags")
     public BaseResponse<List<User>> searchUserByTags(@RequestParam(required = false) List<String> tagNameList){
         if (CollectionUtils.isEmpty(tagNameList)){
@@ -161,6 +197,23 @@ public class userController {
     }
 
     /**
+     * 修改用户信息
+     * @return
+     */
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
+        //1.判断参数是否为空
+        if (user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //2.判断权限
+        User loginUser = userService.getLoginUser(request);
+        //3.修改用户信息
+        Integer integer = userService.updateUser(user,loginUser);
+        return ResultUtils.success(integer);
+    }
+
+    /**
      * 移除用户
      * @param id
      * @param servletRequest
@@ -168,7 +221,7 @@ public class userController {
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id,HttpServletRequest servletRequest){
-        if(!isAdmin(servletRequest)){
+        if(!userService.isAdmin(servletRequest)){
             return null;
         }
         if (id <= 0){
@@ -179,17 +232,5 @@ public class userController {
 
     }
 
-    /**
-     * 判断是否为管理员
-     * @param servletRequest
-     * @return
-     */
-    private boolean isAdmin(@RequestBody HttpServletRequest servletRequest){
-        Object userObject = servletRequest.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User)userObject;
-        if(user == null || user.getUserRole() != ADMIN_ROLE){
-            return false;
-        }
-        return true;
-     }
+
 }

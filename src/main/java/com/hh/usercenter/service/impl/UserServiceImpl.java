@@ -14,9 +14,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.hh.usercenter.constant.UserConstant.ADMIN_ROLE;
 import static com.hh.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -190,6 +193,79 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return 1;
 
     }
+
+    /**
+     * 用户信息修改
+     * @param user
+     * @return
+     */
+    @Override
+    public int updateUser(User user,User loginUser) {
+        long userId = user.getId();
+        if (userId <= 0){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //todo 如果用户没有传任何要更新的值，直接报错，不用执行update语句
+        //管理员可修改所有用户
+        //用户只能修改自己的信息
+        if (!(isAdmin(loginUser)) && loginUser.getId() != userId){
+            throw new BusinessException(ErrorCode.NOT_AUTH);
+        }
+        User oldUser = userMapper.selectById(userId);
+        if (oldUser == null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        return userMapper.updateById(user);
+    }
+
+    /**
+     * 获取已登录的用户
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if (request == null){
+            return null;
+        }
+        Object userObject = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObject == null){
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        return (User) userObject;
+    }
+
+    /**
+     * 判断是否为管理员
+     * @param servletRequest
+     * @return
+     */
+    public Boolean isAdmin(@RequestBody HttpServletRequest servletRequest){
+        User user = getLoginUser(servletRequest);
+        if(user == null || user.getUserRole() != ADMIN_ROLE){
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public Boolean isAdmin(User userLogin) {
+        if(userLogin == null || userLogin.getUserRole() != ADMIN_ROLE){
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 获取推荐的用户
+     * @param request
+     * @return
+     */
+    @Override
+    public User recommendUsers(long pageSize,long pageNum,HttpServletRequest request) {
+        return null;
+    }
+
 
     /**
      * 通过标签查询用户（内存过滤）

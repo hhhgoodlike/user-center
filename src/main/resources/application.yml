@@ -1,13 +1,15 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: user-center
 
 # DataSource Config
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/hh
-    username: "root"
-    password: "123456"
+    url: jdbc:mysql://175.178.94.142:3306/hh
+    username: "user-center"
+    password: "hljaq133711"
 
   #redis配置
 
@@ -21,12 +23,20 @@ spring:
   redis:
     port: 6379
     host: localhost
-    database: 0
-
+    database: 1
 server:
   port: 8080
   servlet:
     context-path: /api
+    session:
+      cookie:
+        domain: localhost
+        secure: true
+        same-site: none
+    encoding:
+      enabled: true
+      force: true
+      charset: utf-8
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
